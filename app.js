@@ -1,6 +1,6 @@
 const path = require('path');
+const fs = require('fs');
 const express = require('express');
-const fs = require("fs");
 const fileUpload = require('express-fileupload');
 
 const app = express();
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
   `);
 });
 
-app.post('/uploads', (req, res) => {
+app.post('/upload', (req, res) => {
   if (!req.files || Object.keys(req.files).length === 0) {
     return res.status(400).send('No files were uploaded.');
   }
@@ -44,7 +44,13 @@ app.get('/files', (req, res) => {
 
   const fileList = fileNames.map((fileName) => {
     const filePath = path.join('/uploads', fileName);
-    return `<li><a href="${filePath}">${fileName}</a></li>`;
+    return `
+      <li>
+        <a href="${filePath}">${fileName}</a>
+        <form action="/files/${fileName}" method="post" style="display: inline;">
+          <button type="submit">Delete</button>
+        </form>
+      </li>`;
   });
 
   const html = `
@@ -53,6 +59,21 @@ app.get('/files', (req, res) => {
   `;
 
   res.send(html);
+});
+
+app.post('/files/:filename', (req, res) => {
+  const filesPath = path.join(__dirname, 'uploads');
+  const filename = req.params.filename;
+  const filePath = path.join(filesPath, filename);
+
+  fs.unlink(filePath, (err) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).send('Internal server error');
+    }
+
+    return res.redirect('/files');
+  });
 });
 
 app.listen(3000, () => {
